@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registrar Incidencia</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            margin: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 15px;
+        }
+
+        select, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        button {
+            margin-top: 20px;
+            width: 100%;
+            padding: 10px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #1a252f;
+        }
+
+        .mensaje {
+            margin-top: 15px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .ok {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+
+<h1>🛠 Registrar Nueva Incidencia</h1>
+
+<div class="container">
+    <form id="formIncidencia">
+        <label for="maquina">Seleccionar máquina:</label>
+        <select id="maquina" required></select>
+
+        <label for="descripcion">Descripción del problema:</label>
+        <textarea id="descripcion" placeholder="Describe el fallo..." required></textarea>
+
+        <button type="submit">Registrar Incidencia</button>
+    </form>
+
+    <div id="mensaje" class="mensaje"></div>
+</div>
+
+<script>
+    const selectMaquina = document.getElementById('maquina');
+    const form = document.getElementById('formIncidencia');
+    const mensaje = document.getElementById('mensaje');
+
+    // Cargar máquinas al iniciar
+    fetch('/api/maquinas')
+        .then(res => res.json())
+        .then(data => {
+            data.data.forEach(maquina => {
+                const option = document.createElement('option');
+                option.value = maquina.id;
+                option.textContent = maquina.nombre + " (" + maquina.tipo + ")";
+                selectMaquina.appendChild(option);
+            });
+        });
+
+    // Enviar formulario
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const id_maquina = selectMaquina.value;
+        const descripcion = document.getElementById('descripcion').value;
+
+        fetch('/api/incidencias', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id_maquina, descripcion })
+        })
+        .then(res => res.json().then(data => ({ status: res.status, body: data })))
+        .then(response => {
+            if (response.status === 201) {
+                mensaje.textContent = response.body.mensaje;
+                mensaje.className = 'mensaje ok';
+                form.reset();
+            } else {
+                mensaje.textContent = response.body.mensaje;
+                mensaje.className = 'mensaje error';
+            }
+        })
+        .catch(() => {
+            mensaje.textContent = "Error de conexión con el servidor.";
+            mensaje.className = 'mensaje error';
+        });
+    });
+</script>
+
+</body>
+</html>
