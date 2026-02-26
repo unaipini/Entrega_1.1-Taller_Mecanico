@@ -4,12 +4,12 @@
  * =========================================================
  */
 
-const express  = require('express');
-const cors     = require('cors');
-const path     = require('path');
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
 const Database = require('better-sqlite3');
 
-const app  = express();
+const app = express();
 const PORT = 3000;
 
 app.use(cors());
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS incidencia (
 const maquinasCount = db.prepare("SELECT COUNT(*) as total FROM maquina").get();
 
 if (maquinasCount.total === 0) {
-  db.exec(`
+    db.exec(`
     INSERT INTO maquina (nombre, tipo, estado) VALUES
     ('CNC-01', 'Fresadora CNC', 'Operativa'),
     ('PR-02', 'Prensa Hidraulica', 'En mantenimiento'),
@@ -139,13 +139,34 @@ app.post('/api/incidencias', (req, res) => {
 
     try {
 
-        // =====================================================
-        // TODO: ANTIDUPLICADOS
-        // Aquí se deberá comprobar si ya existe una incidencia
-        // abierta o en progreso para la misma máquina con una
-        // descripción similar antes de insertar.
-        // =====================================================
+        // --- INICIO REGLA ANTI-DUPLICADOS (Tarea de Asier) ---
 
+        // 1. Obtenemos las incidencias que ya están ABIERTAS o EN PROGRESO para esta máquina
+        const incidenciasAbiertas = db.prepare(`
+    SELECT id, descripcion
+    FROM incidencia
+    WHERE id_maquina = ?
+      AND estado IN ('Abierta', 'En Progreso')
+`).all(id_maquina);
+
+        // 2. Función para extraer las primeras 4 palabras en minúsculas
+        const primerasPalabras = (texto) =>
+            texto.toLowerCase().trim().split(/\s+/).slice(0, 4).join(' ');
+
+        const claveNueva = primerasPalabras(descripcionLimpia);
+
+        // 3. Comprobamos si hay coincidencia
+        const esDuplicado = incidenciasAbiertas.some(
+            inc => primerasPalabras(inc.descripcion) === claveNueva
+        );
+
+        // 4. Si es duplicado, devolvemos error 409
+        if (esDuplicado) {
+            return res.status(409).json({
+                ok: false,
+                mensaje: '⚠️ Ya existe una incidencia ABIERTA para esta máquina con un motivo similar.'
+            });
+        }
 
         const resultado = db.prepare(`
             INSERT INTO incidencia (id_maquina, id_usuario_registra, descripcion, estado)
