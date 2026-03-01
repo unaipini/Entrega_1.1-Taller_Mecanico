@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Uso de Máquina</title>
+</head>
+<body>
+
+<h1>▶ Iniciar / Finalizar Uso</h1>
+
+<label>Usuario:</label>
+<select id="usuario"></select>
+
+<label>Máquina:</label>
+<select id="maquina"></select>
+
+<button onclick="iniciar()">Iniciar Uso</button>
+<button onclick="finalizar()">Finalizar Uso</button>
+
+<p id="mensaje"></p>
+
+<script>
+const selectUsuario = document.getElementById('usuario');
+const selectMaquina = document.getElementById('maquina');
+const mensaje = document.getElementById('mensaje');
+
+fetch('/api/usuarios')
+  .then(res => res.json())
+  .then(data => {
+    data.data.forEach(u => {
+      const option = document.createElement('option');
+      option.value = u.id;
+      option.textContent = u.nombre;
+      selectUsuario.appendChild(option);
+    });
+  });
+
+fetch('/api/maquinas')
+  .then(res => res.json())
+  .then(data => {
+    data.data.forEach(m => {
+      const option = document.createElement('option');
+      option.value = m.id;
+      option.textContent = m.nombre;
+      selectMaquina.appendChild(option);
+    });
+  });
+
+function iniciar() {
+  fetch('/api/uso/iniciar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id_maquina: selectMaquina.value,
+      id_usuario: selectUsuario.value
+    })
+  })
+  .then(res => res.json())
+  .then(data => mensaje.textContent = data.mensaje);
+}
+
+function finalizar() {
+  fetch('/api/uso/finalizar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id_maquina: selectMaquina.value
+    })
+  })
+  .then(res => res.json())
+  .then(data => mensaje.textContent = data.mensaje);
+}
+</script>
+
+</body>
+</html>

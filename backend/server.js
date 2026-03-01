@@ -48,6 +48,15 @@ CREATE TABLE IF NOT EXISTS incidencia (
   id_usuario_registra INTEGER,
   fecha DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS uso_maquina (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id_maquina INTEGER,
+  id_usuario INTEGER,
+  fecha_inicio DATETIME DEFAULT CURRENT_TIMESTAMP,
+  fecha_fin DATETIME,
+  FOREIGN KEY (id_maquina) REFERENCES maquina(id),
+  FOREIGN KEY (id_usuario) REFERENCES usuario(id)
+);
 `);
 
 // ======================
@@ -92,6 +101,23 @@ app.get('/api/maquinas', (req, res) => {
     } catch (error) {
         console.error('[GET /api/maquinas]', error.message);
         res.status(500).json({ ok: false, mensaje: 'Error interno del servidor.' });
+    }
+});
+
+// ======================
+// GET /api/usuarios
+// ======================
+
+app.get('/api/usuarios', (req, res) => {
+    try {
+        const usuarios = db.prepare(
+            'SELECT id, nombre, rol FROM usuario ORDER BY nombre'
+        ).all();
+
+        res.json({ ok: true, data: usuarios });
+    } catch (error) {
+        console.error('[GET /api/usuarios]', error.message);
+        res.status(500).json({ ok: false, mensaje: 'Error interno.' });
     }
 });
 
@@ -185,6 +211,88 @@ app.post('/api/incidencias', (req, res) => {
     }
 });
 
+
+// ======================
+// POST /api/uso/iniciar
+// ======================
+
+app.post('/api/uso/iniciar', (req, res) => {
+    const { id_maquina, id_usuario } = req.body;
+
+    if (!id_maquina || !id_usuario) {
+        return res.status(400).json({ ok: false, mensaje: 'Campos obligatorios.' });
+    }
+
+    try {
+        // Verificamos que no haya un uso activo
+        const usoActivo = db.prepare(`
+            SELECT * FROM uso_maquina
+            WHERE id_maquina = ?
+              AND fecha_fin IS NULL
+        `).get(id_maquina);
+
+        if (usoActivo) {
+            return res.status(409).json({
+                ok: false,
+                mensaje: '⚠️ Esta máquina ya está en uso.'
+            });
+        }
+
+        db.prepare(`
+            INSERT INTO uso_maquina (id_maquina, id_usuario)
+            VALUES (?, ?)
+        `).run(id_maquina, id_usuario);
+
+        res.status(201).json({
+            ok: true,
+            mensaje: '✅ Uso de máquina iniciado.'
+        });
+
+    } catch (error) {
+        console.error('[POST /api/uso/iniciar]', error.message);
+        res.status(500).json({ ok: false, mensaje: 'Error interno.' });
+    }
+});
+
+// ======================
+// POST /api/uso/finalizar
+// ======================
+
+app.post('/api/uso/finalizar', (req, res) => {
+    const { id_maquina } = req.body;
+
+    if (!id_maquina) {
+        return res.status(400).json({ ok: false, mensaje: 'ID máquina obligatorio.' });
+    }
+
+    try {
+        const resultado = db.prepare(`
+            UPDATE uso_maquina
+            SET fecha_fin = CURRENT_TIMESTAMP
+            WHERE id_maquina = ?
+              AND fecha_fin IS NULL
+        `).run(id_maquina);
+
+        if (resultado.changes === 0) {
+            return res.status(404).json({
+                ok: false,
+                mensaje: 'No había ningún uso activo.'
+            });
+        }
+
+        res.json({
+            ok: true,
+            mensaje: '✅ Uso finalizado.'
+        });
+
+    } catch (error) {
+        console.error('[POST /api/uso/finalizar]', error.message);
+        res.status(500).json({ ok: false, mensaje: 'Error interno.' });
+    }
+});
+
+// ======================
+// ARRANQUE DEL SERVIDOR
 // ======================
 
 app.listen(PORT, () => {
