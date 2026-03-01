@@ -292,6 +292,46 @@ app.post('/api/uso/finalizar', (req, res) => {
 });
 
 // ======================
+// GET /api/maquinas/:id/historial
+// ======================
+
+app.get('/api/maquinas/:id/historial', (req, res) => {
+    const id_maquina = req.params.id;
+
+    try {
+
+        // Historial de uso
+        const usos = db.prepare(`
+            SELECT u.nombre, um.fecha_inicio, um.fecha_fin
+            FROM uso_maquina um
+            JOIN usuario u ON u.id = um.id_usuario
+            WHERE um.id_maquina = ?
+            ORDER BY um.fecha_inicio DESC
+        `).all(id_maquina);
+
+        // Incidencias de la máquina
+        const incidencias = db.prepare(`
+            SELECT descripcion, estado, fecha
+            FROM incidencia
+            WHERE id_maquina = ?
+            ORDER BY fecha DESC
+        `).all(id_maquina);
+
+        res.json({
+            ok: true,
+            data: {
+                usos,
+                incidencias
+            }
+        });
+
+    } catch (error) {
+        console.error('[GET historial]', error.message);
+        res.status(500).json({ ok: false, mensaje: 'Error interno.' });
+    }
+});
+
+// ======================
 // ARRANQUE DEL SERVIDOR
 // ======================
 

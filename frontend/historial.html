@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Historial de Máquina</title>
+</head>
+<body>
+
+<h1>📊 Historial de Máquina</h1>
+
+<label>Seleccionar máquina:</label>
+<select id="maquina"></select>
+
+<button onclick="cargarHistorial()">Ver Historial</button>
+
+<h2>👷 Historial de Uso</h2>
+<table border="1">
+    <thead>
+        <tr>
+            <th>Usuario</th>
+            <th>Inicio</th>
+            <th>Fin</th>
+        </tr>
+    </thead>
+    <tbody id="tablaUsos"></tbody>
+</table>
+
+<h2>🛠 Incidencias</h2>
+<table border="1">
+    <thead>
+        <tr>
+            <th>Descripción</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+        </tr>
+    </thead>
+    <tbody id="tablaIncidencias"></tbody>
+</table>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const selectMaquina = document.getElementById('maquina');
+
+    fetch('/api/maquinas')
+        .then(res => res.json())
+        .then(data => {
+            data.data.forEach(m => {
+                const option = document.createElement('option');
+                option.value = m.id;
+                option.textContent = m.nombre;
+                selectMaquina.appendChild(option);
+            });
+        });
+});
+
+function cargarHistorial() {
+
+    const id = document.getElementById('maquina').value;
+
+    fetch(`/api/maquinas/${id}/historial`)
+        .then(res => res.json())
+        .then(response => {
+
+            const tablaUsos = document.getElementById('tablaUsos');
+            const tablaIncidencias = document.getElementById('tablaIncidencias');
+
+            tablaUsos.innerHTML = '';
+            tablaIncidencias.innerHTML = '';
+
+            // Pintar usos
+            response.data.usos.forEach(uso => {
+                const fila = document.createElement('tr');
+                fila.innerHTML = `
+                    <td>${uso.nombre}</td>
+                    <td>${uso.fecha_inicio}</td>
+                    <td>${uso.fecha_fin || 'En uso'}</td>
+                `;
+                tablaUsos.appendChild(fila);
+            });
+
+            // Pintar incidencias
+            response.data.incidencias.forEach(inc => {
+                const fila = document.createElement('tr');
+                fila.innerHTML = `
+                    <td>${inc.descripcion}</td>
+                    <td>${inc.estado}</td>
+                    <td>${inc.fecha}</td>
+                `;
+                tablaIncidencias.appendChild(fila);
+            });
+
+        });
+}
+</script>
+
+</body>
+</html>
