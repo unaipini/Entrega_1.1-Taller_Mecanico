@@ -164,59 +164,61 @@ app.get('/api/incidencias/abiertas', (req, res) => {
 // ======================
 
 app.post('/api/incidencias', (req, res) => {
-    const { id_maquina, descripcion } = req.body;
+    // 1. AHORA PEDIMOS EL id_usuario AL FRONTEND (TM-32)
+    const { id_maquina, id_usuario, descripcion } = req.body;
 
-    if (!id_maquina || !descripcion || descripcion.trim() === '') {
-        return res.status(400).json({ ok: false, mensaje: 'Campos obligatorios.' });
+    if (!id_maquina || !id_usuario || !descripcion || descripcion.trim() === '') {
+        return res.status(400).json({ ok: false, mensaje: 'Campos obligatorios: máquina, usuario y descripción.' });
     }
 
     const descripcionLimpia = descripcion.trim();
 
     try {
-
-        // --- INICIO REGLA ANTI-DUPLICADOS (Tarea de Asier) ---
-
-        // 1. Obtenemos las incidencias que ya están ABIERTAS o EN PROGRESO para esta máquina
+        // --- INICIO REGLA ANTI-DUPLICADOS (Tarea de Asier - Sprint 1) ---
         const incidenciasAbiertas = db.prepare(`
-    SELECT id, descripcion
-    FROM incidencia
-    WHERE id_maquina = ?
-      AND estado IN ('Abierta', 'En Progreso')
-`).all(id_maquina);
+            SELECT id, descripcion
+            FROM incidencia
+            WHERE id_maquina = ? AND estado IN ('Abierta', 'En Progreso')
+        `).all(id_maquina);
 
-        // 2. Función para extraer las primeras 4 palabras en minúsculas
-        const primerasPalabras = (texto) =>
-            texto.toLowerCase().trim().split(/\s+/).slice(0, 4).join(' ');
-
+        const primerasPalabras = (texto) => texto.toLowerCase().trim().split(/\s+/).slice(0, 4).join(' ');
         const claveNueva = primerasPalabras(descripcionLimpia);
+        const esDuplicado = incidenciasAbiertas.some(inc => primerasPalabras(inc.descripcion) === claveNueva);
 
-        // 3. Comprobamos si hay coincidencia
-        const esDuplicado = incidenciasAbiertas.some(
-            inc => primerasPalabras(inc.descripcion) === claveNueva
-        );
-
-        // 4. Si es duplicado, devolvemos error 409
         if (esDuplicado) {
             return res.status(409).json({
                 ok: false,
                 mensaje: '⚠️ Ya existe una incidencia ABIERTA para esta máquina con un motivo similar.'
             });
         }
+        // --- FIN REGLA ANTI-DUPLICADOS ---
 
+        // 2. GUARDAMOS CON EL USUARIO REAL (TM-32)
         const resultado = db.prepare(`
             INSERT INTO incidencia (id_maquina, id_usuario_registra, descripcion, estado)
             VALUES (?, ?, ?, 'Abierta')
-        `).run(id_maquina, USUARIO_ACTUAL.id, descripcionLimpia);
+        `).run(id_maquina, id_usuario, descripcionLimpia);
+
+        // 3. LÓGICA DE NOTIFICACIÓN (TM-35)
+        // Buscamos los nombres para la alerta
+        const maquinaInfo = db.prepare('SELECT nombre FROM maquina WHERE id = ?').get(id_maquina);
+        const usuarioInfo = db.prepare('SELECT nombre, rol FROM usuario WHERE id = ?').get(id_usuario);
+        
+        // Simulamos un envío de email/notificación push en el servidor
+        console.log(`\n🔔 [NOTIFICACIÓN DEL SISTEMA]`);
+        console.log(`📩 Enviando aviso urgente a Supervisores...`);
+        console.log(`   El operario ${usuarioInfo.nombre} ha registrado un fallo en la máquina ${maquinaInfo.nombre}.`);
+        console.log(`   Motivo: "${descripcionLimpia}"\n`);
 
         res.status(201).json({
             ok: true,
-            mensaje: '✅ Incidencia registrada.',
+            mensaje: `✅ Incidencia registrada. Se ha notificado a los supervisores del fallo en ${maquinaInfo.nombre}.`,
             id: resultado.lastInsertRowid
         });
 
     } catch (error) {
         console.error('[POST /api/incidencias]', error.message);
-        res.status(500).json({ ok: false, mensaje: 'Error al guardar.' });
+        res.status(500).json({ ok: false, mensaje: 'Error al guardar la incidencia.' });
     }
 });
 
