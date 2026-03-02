@@ -57,6 +57,15 @@ CREATE TABLE IF NOT EXISTS uso_maquina (
   FOREIGN KEY (id_maquina) REFERENCES maquina(id),
   FOREIGN KEY (id_usuario) REFERENCES usuario(id)
 );
+CREATE TABLE IF NOT EXISTS evento (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id_maquina INTEGER,
+  id_usuario INTEGER,
+  descripcion TEXT,
+  fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (id_maquina) REFERENCES maquina(id),
+  FOREIGN KEY (id_usuario) REFERENCES usuario(id)
+);
 `);
 
 // ======================
@@ -327,6 +336,49 @@ app.get('/api/maquinas/:id/historial', (req, res) => {
 
     } catch (error) {
         console.error('[GET historial]', error.message);
+        res.status(500).json({ ok: false, mensaje: 'Error interno.' });
+    }
+});
+
+// ======================
+// POST /api/eventos
+// ======================
+
+app.post('/api/eventos', (req, res) => {
+    const { id_maquina, id_usuario, descripcion } = req.body;
+
+    if (!id_maquina || !id_usuario || !descripcion || descripcion.trim() === '') {
+        return res.status(400).json({ ok: false, mensaje: 'Campos obligatorios.' });
+    }
+
+    try {
+
+        // Verificamos que la máquina esté en uso
+        const usoActivo = db.prepare(`
+            SELECT * FROM uso_maquina
+            WHERE id_maquina = ?
+              AND fecha_fin IS NULL
+        `).get(id_maquina);
+
+        if (!usoActivo) {
+            return res.status(400).json({
+                ok: false,
+                mensaje: 'La máquina no está en uso actualmente.'
+            });
+        }
+
+        db.prepare(`
+            INSERT INTO evento (id_maquina, id_usuario, descripcion)
+            VALUES (?, ?, ?)
+        `).run(id_maquina, id_usuario, descripcion.trim());
+
+        res.status(201).json({
+            ok: true,
+            mensaje: '✅ Evento registrado correctamente.'
+        });
+
+    } catch (error) {
+        console.error('[POST /api/eventos]', error.message);
         res.status(500).json({ ok: false, mensaje: 'Error interno.' });
     }
 });

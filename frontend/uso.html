@@ -17,6 +17,14 @@
 <button onclick="iniciar()">Iniciar Uso</button>
 <button onclick="finalizar()">Finalizar Uso</button>
 
+<hr>
+
+<h2>📝 Registrar Evento</h2>
+
+<textarea id="descripcionEvento" placeholder="Describe el evento..."></textarea>
+<br><br>
+<button onclick="registrarEvento()">Registrar Evento</button>
+
 <p id="mensaje"></p>
 
 <script>
@@ -69,6 +77,26 @@ function finalizar() {
   })
   .then(res => res.json())
   .then(data => mensaje.textContent = data.mensaje);
+}
+
+function registrarEvento() {
+
+  const descripcion = document.getElementById('descripcionEvento').value;
+
+  fetch('/api/eventos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id_maquina: selectMaquina.value,
+      id_usuario: selectUsuario.value,
+      descripcion: descripcion
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    mensaje.textContent = data.mensaje;
+    document.getElementById('descripcionEvento').value = '';
+  });
 }
 </script>
 
