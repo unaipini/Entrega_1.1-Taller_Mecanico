@@ -21,14 +21,19 @@ Aplicación web para la gestión de incidencias de un taller mecánico. Permite 
 ```
 Entrega_1.1-Taller_Mecanico/
 ├── database/
-│   └── esquema.sql          ← Esquema de referencia exportado desde MySQL
+│   └── esquema.sql              ← Esquema de referencia exportado desde MySQL
+│
 ├── backend/
 │   ├── package.json
-│   ├── server.js            ← Servidor Express + endpoints + regla anti-duplicados
-│   └── taller.db            ← Base de datos SQLite (se crea sola al arrancar)
+│   ├── package-lock.json
+│   ├── server.js                ← Servidor Express + endpoints + control de uso + eventos
+│   └── taller.db                ← Base de datos SQLite (se crea automáticamente al arrancar)
+│
 └── frontend/
-    ├── registrar.html       ← Vista 1: formulario para registrar incidencias
-    └── lista.html           ← Vista 2: tabla de incidencias activas
+    ├── registrar.html           ← Vista: formulario para registrar incidencias
+    ├── lista.html               ← Vista: tabla de incidencias activas
+    ├── uso.html                 ← Vista: iniciar/finalizar uso y registrar eventos
+    └── historial.html           ← Vista: historial de uso e incidencias por máquina
 ```
 
 ---
@@ -65,9 +70,11 @@ Deberías ver en consola:
 Con el servidor corriendo, abre en el navegador:
 
 | Vista | URL |
-|-------|-----|
+|-------|------|
 | Registrar incidencia | http://localhost:3000/registrar.html |
 | Ver incidencias activas | http://localhost:3000/lista.html |
+| Uso de máquina | http://localhost:3000/uso.html |
+| Historial de máquina | http://localhost:3000/historial.html |
 
 ---
 
@@ -75,9 +82,16 @@ Con el servidor corriendo, abre en el navegador:
 
 | Método | Ruta | Descripción |
 |--------|------|-------------|
-| `GET` | `/api/maquinas` | Devuelve todas las máquinas (para el `<select>` del formulario) |
-| `GET` | `/api/incidencias/abiertas` | Devuelve las incidencias en estado `Abierta` o `En Progreso` |
+| `GET` | `/api/maquinas` | Devuelve todas las máquinas |
+| `GET` | `/api/usuarios` | Devuelve todos los usuarios |
+| `GET` | `/api/incidencias/abiertas` | Devuelve incidencias en estado `Abierta` o `En Progreso` |
+| `GET` | `/api/maquinas/:id/historial` | Devuelve historial de uso e incidencias de una máquina |
 | `POST` | `/api/incidencias` | Registra una nueva incidencia |
+| `POST` | `/api/uso/iniciar` | Inicia el uso de una máquina |
+| `POST` | `/api/uso/finalizar` | Finaliza el uso activo de una máquina |
+| `POST` | `/api/eventos` | Registra un evento durante el uso activo |
+
+---
 
 ### POST `/api/incidencias` — Body esperado
 
@@ -86,7 +100,20 @@ Con el servidor corriendo, abre en el navegador:
   "id_maquina": 1,
   "descripcion": "Ruido anormal en el eje principal."
 }
-```
+
+### POST /api/uso/iniciar` — Body esperado
+{
+  "id_maquina": 1,
+  "id_usuario": 2
+}
+
+### POST /api/eventos — Body esperado
+{
+  "id_maquina": 1,
+  "id_usuario": 2,
+  "descripcion": "Vibración leve detectada durante el funcionamiento."
+}
+
 
 ### Códigos de respuesta
 
@@ -94,6 +121,7 @@ Con el servidor corriendo, abre en el navegador:
 |------|-----------|
 | `201 Created` | Incidencia registrada correctamente |
 | `400 Bad Request` | Faltan campos obligatorios |
+| `404 Not Found` | Recurso no encontrado |
 | `409 Conflict` | Incidencia duplicada detectada |
 | `500 Internal Server Error` | Error interno del servidor |
 
