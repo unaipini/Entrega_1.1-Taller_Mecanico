@@ -35,6 +35,7 @@
             margin-top: 5px;
             border-radius: 5px;
             border: 1px solid #ccc;
+            box-sizing: border-box; /* Añadido para que no se salga del contenedor */
         }
 
         textarea {
@@ -79,11 +80,14 @@
 
 <div class="container">
     <form id="formIncidencia">
+        <label for="usuario">¿Quién registra la incidencia?</label>
+        <select id="usuario"></select>
+
         <label for="maquina">Seleccionar máquina:</label>
-        <select id="maquina" required></select>
+        <select id="maquina"></select>
 
         <label for="descripcion">Descripción del problema:</label>
-        <textarea id="descripcion" placeholder="Describe el fallo..." required></textarea>
+        <textarea id="descripcion" placeholder="Describe el fallo (mínimo 10 caracteres)..."></textarea>
 
         <button type="submit">Registrar Incidencia</button>
     </form>
@@ -92,14 +96,37 @@
 </div>
 
 <script>
+    const selectUsuario = document.getElementById('usuario');
     const selectMaquina = document.getElementById('maquina');
     const form = document.getElementById('formIncidencia');
     const mensaje = document.getElementById('mensaje');
+
+    // TM-33: Cargar usuarios al iniciar
+    fetch('/api/usuarios')
+        .then(res => res.json())
+        .then(data => {
+            const optionDefault = document.createElement('option');
+            optionDefault.value = "";
+            optionDefault.textContent = "-- Selecciona tu usuario --";
+            selectUsuario.appendChild(optionDefault);
+
+            data.data.forEach(u => {
+                const option = document.createElement('option');
+                option.value = u.id;
+                option.textContent = u.nombre + " (" + u.rol + ")";
+                selectUsuario.appendChild(option);
+            });
+        });
 
     // Cargar máquinas al iniciar
     fetch('/api/maquinas')
         .then(res => res.json())
         .then(data => {
+            const optionDefault = document.createElement('option');
+            optionDefault.value = "";
+            optionDefault.textContent = "-- Selecciona una máquina --";
+            selectMaquina.appendChild(optionDefault);
+
             data.data.forEach(maquina => {
                 const option = document.createElement('option');
                 option.value = maquina.id;
@@ -112,13 +139,32 @@
     form.addEventListener('submit', function(e) {
         e.preventDefault();
 
+        const id_usuario = selectUsuario.value;
         const id_maquina = selectMaquina.value;
-        const descripcion = document.getElementById('descripcion').value;
+        const descripcion = document.getElementById('descripcion').value.trim();
 
+        // TM-34: Validaciones extra en el frontend
+        if (!id_usuario) {
+            mensaje.textContent = "Error: Debes seleccionar tu usuario.";
+            mensaje.className = 'mensaje error';
+            return;
+        }
+        if (!id_maquina) {
+            mensaje.textContent = "Error: Debes seleccionar una máquina.";
+            mensaje.className = 'mensaje error';
+            return;
+        }
+        if (descripcion.length < 10) {
+            mensaje.textContent = "Error: La descripción debe tener al menos 10 caracteres.";
+            mensaje.className = 'mensaje error';
+            return;
+        }
+
+        // Si pasa las validaciones, enviamos (añadido id_usuario)
         fetch('/api/incidencias', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id_maquina, descripcion })
+            body: JSON.stringify({ id_usuario, id_maquina, descripcion })
         })
         .then(res => res.json().then(data => ({ status: res.status, body: data })))
         .then(response => {
