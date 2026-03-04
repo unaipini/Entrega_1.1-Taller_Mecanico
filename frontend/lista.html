@@ -150,11 +150,11 @@
                     <td>${inc.maquina_tipo}</td>
                     <td>${inc.descripcion}</td>
                     <td>
-                        <select onchange="cambiarEstado(${inc.incidencia_id}, this.value)">
-                            <option value="Abierta" ${inc.estado === 'Abierta' ? 'selected' : ''}>Abierta</option>
-                            <option value="En Progreso" ${inc.estado === 'En Progreso' ? 'selected' : ''}>En Progreso</option>
-                            <option value="Cerrada">Cerrada</option>
-                        </select>
+                    <select onchange="cambiarEstado(${inc.incidencia_id}, this.value)">
+                    <option value="Abierta" ${inc.estado === 'Abierta' ? 'selected' : ''}>Abierta</option>
+                    <option value="En Progreso" ${inc.estado === 'En Progreso' ? 'selected' : ''}>En Progreso</option>
+                    ${rolUsuario === "Supervisor" ? '<option value="Cerrada">Cerrada</option>' : ''}
+                    </select>
                     </td>
                     <td>${inc.fecha}</td>
                     <td>${inc.registrado_por}</td>
@@ -168,6 +168,7 @@
                 });
         }
         let usuarioActual = 2; // Simulación: 2 = Supervisor
+        let rolUsuario = "Supervisor";
         function cambiarEstado(id, nuevoEstado) {
 
             fetch(`/api/incidencias/${id}/estado`, {
