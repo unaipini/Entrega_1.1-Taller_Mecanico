@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Métricas e Incidencias</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f6f8; margin: 20px; }
+        h1 { text-align: center; color: #2c3e50; }
+        .dashboard { display: flex; justify-content: space-around; flex-wrap: wrap; margin-top: 30px; }
+        .card-grafico { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width: 45%; min-width: 300px; margin-bottom: 20px; }
+        canvas { max-width: 100%; }
+    </style>
+</head>
+<body>
+
+    <h1>📊 Dashboard de Métricas</h1>
+
+    <div class="dashboard">
+        <div class="card-grafico">
+            <h3 style="text-align: center;">Estado de las Incidencias</h3>
+            <canvas id="graficoEstado"></canvas>
+        </div>
+
+        <div class="card-grafico">
+            <h3 style="text-align: center;">Incidencias por Máquina</h3>
+            <canvas id="graficoMaquinas"></canvas>
+        </div>
+    </div>
+
+<script>
+    // Lógica para renderizar los gráficos
+    fetch('/api/metricas')
+        .then(res => res.json())
+        .then(response => {
+            const datos = response.data;
+
+            // --- 1. GRÁFICO DE ESTADOS (Tarta) ---
+            const ctxEstado = document.getElementById('graficoEstado').getContext('2d');
+            const labelsEstado = datos.porEstado.map(d => d.estado);
+            const valuesEstado = datos.porEstado.map(d => d.total);
+
+            new Chart(ctxEstado, {
+                type: 'doughnut',
+                data: {
+                    labels: labelsEstado,
+                    datasets: [{
+                        data: valuesEstado,
+                        backgroundColor: ['#e74c3c', '#f39c12', '#2ecc71'], // Colores: rojo (abierta), naranja (progreso), verde (resuelta)
+                    }]
+                }
+            });
+
+            // --- 2. GRÁFICO DE MÁQUINAS (Barras) ---
+            const ctxMaquinas = document.getElementById('graficoMaquinas').getContext('2d');
+            const labelsMaquinas = datos.porMaquina.map(d => d.nombre);
+            const valuesMaquinas = datos.porMaquina.map(d => d.total);
+
+            new Chart(ctxMaquinas, {
+                type: 'bar',
+                data: {
+                    labels: labelsMaquinas,
+                    datasets: [{
+                        label: 'Nº de Incidencias',
+                        data: valuesMaquinas,
+                        backgroundColor: '#3498db'
+                    }]
+                },
+                options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+            });
+        })
+        .catch(error => console.error("Error cargando métricas:", error));
+</script>
+
+</body>
+</html>

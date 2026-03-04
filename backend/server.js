@@ -385,6 +385,38 @@ app.post('/api/eventos', (req, res) => {
     }
 });
 
+// ===================
+// GET /api/metricas
+// ===================
+app.get('/api/metricas', (req, res) => {
+    try {
+        // Métrica 1: Cantidad de incidencias por estado
+        const porEstado = db.prepare(`
+            SELECT estado, COUNT(*) as total 
+            FROM incidencia 
+            GROUP BY estado
+        `).all();
+
+        // Métrica 2: Top máquinas con más incidencias
+        const porMaquina = db.prepare(`
+            SELECT m.nombre, COUNT(i.id) as total
+            FROM maquina m
+            JOIN incidencia i ON m.id = i.id_maquina
+            GROUP BY m.nombre
+            ORDER BY total DESC
+        `).all();
+
+        res.json({ 
+            ok: true, 
+            data: { porEstado, porMaquina } 
+        });
+
+    } catch (error) {
+        console.error('[GET /api/metricas]', error.message);
+        res.status(500).json({ ok: false, mensaje: 'Error al obtener métricas.' });
+    }
+});
+
 // ======================
 // ARRANQUE DEL SERVIDOR
 // ======================
