@@ -391,7 +391,24 @@ app.post('/api/eventos', (req, res) => {
 
 app.post('/api/incidencias/:id/estado', (req, res) => {
     const id = req.params.id;
-    const { estado } = req.body;
+    const { estado, id_usuario } = req.body;
+
+// Verificamos rol del usuario
+const usuario = db.prepare(`
+    SELECT rol FROM usuario WHERE id = ?
+`).get(id_usuario);
+
+if (!usuario) {
+    return res.status(404).json({ ok: false, mensaje: 'Usuario no encontrado.' });
+}
+
+// Solo el supervisor puede cerrar incidencias
+if (estado === 'Cerrada' && usuario.rol !== 'Supervisor') {
+    return res.status(403).json({
+        ok: false,
+        mensaje: 'Solo un supervisor puede cerrar incidencias.'
+    });
+}
 
     if (!['Abierta', 'En Progreso', 'Cerrada'].includes(estado)) {
         return res.status(400).json({ ok: false, mensaje: 'Estado inválido.' });
