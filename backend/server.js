@@ -46,7 +46,8 @@ CREATE TABLE IF NOT EXISTS incidencia (
   estado TEXT,
   id_maquina INTEGER,
   id_usuario_registra INTEGER,
-  fecha DATETIME DEFAULT CURRENT_TIMESTAMP
+  fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+  fecha_fin DATETIME
 );
 CREATE TABLE IF NOT EXISTS uso_maquina (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -203,7 +204,7 @@ app.post('/api/incidencias', (req, res) => {
         // Buscamos los nombres para la alerta
         const maquinaInfo = db.prepare('SELECT nombre FROM maquina WHERE id = ?').get(id_maquina);
         const usuarioInfo = db.prepare('SELECT nombre, rol FROM usuario WHERE id = ?').get(id_usuario);
-        
+
         // Simulamos un envío de email/notificación push en el servidor
         console.log(`\n🔔 [NOTIFICACIÓN DEL SISTEMA]`);
         console.log(`📩 Enviando aviso urgente a Supervisores...`);
@@ -393,22 +394,22 @@ app.post('/api/incidencias/:id/estado', (req, res) => {
     const id = req.params.id;
     const { estado, id_usuario } = req.body;
 
-// Verificamos rol del usuario
-const usuario = db.prepare(`
+    // Verificamos rol del usuario
+    const usuario = db.prepare(`
     SELECT rol FROM usuario WHERE id = ?
 `).get(id_usuario);
 
-if (!usuario) {
-    return res.status(404).json({ ok: false, mensaje: 'Usuario no encontrado.' });
-}
+    if (!usuario) {
+        return res.status(404).json({ ok: false, mensaje: 'Usuario no encontrado.' });
+    }
 
-// Solo el supervisor puede cerrar incidencias
-if (estado === 'Cerrada' && usuario.rol !== 'Supervisor') {
-    return res.status(403).json({
-        ok: false,
-        mensaje: 'Solo un supervisor puede cerrar incidencias.'
-    });
-}
+    // Solo el supervisor puede cerrar incidencias
+    if (estado === 'Cerrada' && usuario.rol !== 'Supervisor') {
+        return res.status(403).json({
+            ok: false,
+            mensaje: 'Solo un supervisor puede cerrar incidencias.'
+        });
+    }
 
     if (!['Abierta', 'En Progreso', 'Cerrada'].includes(estado)) {
         return res.status(400).json({ ok: false, mensaje: 'Estado inválido.' });
@@ -417,9 +418,14 @@ if (estado === 'Cerrada' && usuario.rol !== 'Supervisor') {
     try {
         const resultado = db.prepare(`
             UPDATE incidencia
-            SET estado = ?
+            SET estado = ?, 
+             fecha_fin = CASE 
+            WHEN ? = 'Cerrada' THEN CURRENT_TIMESTAMP 
+            ELSE fecha_fin 
+            END
             WHERE id = ?
-        `).run(estado, id);
+        `).run(estado, estado, id);
+
 
         if (resultado.changes === 0) {
             return res.status(404).json({
@@ -454,6 +460,35 @@ if (estado === 'Cerrada' && usuario.rol !== 'Supervisor') {
 });
 
 // ===================
+// GET /api/incidencias/tiempos
+// ===================
+
+app.get('/api/incidencias/tiempos', (req, res) => {
+    try {
+
+        const incidencias = db.prepare(`
+            SELECT 
+                id,
+                descripcion,
+                fecha,
+                fecha_fin,
+                ROUND((julianday(fecha_fin) - julianday(fecha)) * 24, 2) AS horas_resolucion
+            FROM incidencia
+            WHERE fecha_fin IS NOT NULL
+        `).all();
+
+        res.json({
+            ok: true,
+            data: incidencias
+        });
+
+    } catch (error) {
+        console.error('[GET /api/incidencias/tiempos]', error.message);
+        res.status(500).json({ ok: false, mensaje: 'Error calculando tiempos.' });
+    }
+});
+
+// ===================
 // GET /api/metricas
 // ===================
 app.get('/api/metricas', (req, res) => {
@@ -474,9 +509,9 @@ app.get('/api/metricas', (req, res) => {
             ORDER BY total DESC
         `).all();
 
-        res.json({ 
-            ok: true, 
-            data: { porEstado, porMaquina } 
+        res.json({
+            ok: true,
+            data: { porEstado, porMaquina }
         });
 
     } catch (error) {
