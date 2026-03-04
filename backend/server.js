@@ -385,6 +385,57 @@ app.post('/api/eventos', (req, res) => {
     }
 });
 
+// ======================
+// POST /api/incidencias/:id/estado
+// ======================
+
+app.post('/api/incidencias/:id/estado', (req, res) => {
+    const id = req.params.id;
+    const { estado } = req.body;
+
+    if (!['Abierta', 'En Progreso', 'Cerrada'].includes(estado)) {
+        return res.status(400).json({ ok: false, mensaje: 'Estado inválido.' });
+    }
+
+    try {
+        const resultado = db.prepare(`
+            UPDATE incidencia
+            SET estado = ?
+            WHERE id = ?
+        `).run(estado, id);
+
+        if (resultado.changes === 0) {
+            return res.status(404).json({
+                ok: false,
+                mensaje: 'Incidencia no encontrada.'
+            });
+        }
+
+        // 🔔 Si pasa a Cerrada → notificación en servidor
+        if (estado === 'Cerrada') {
+            const incidencia = db.prepare(`
+                SELECT i.descripcion, m.nombre AS maquina_nombre
+                FROM incidencia i
+                JOIN maquina m ON m.id = i.id_maquina
+                WHERE i.id = ?
+            `).get(id);
+
+            console.log(`\n🔧 [INCIDENCIA CERRADA]`);
+            console.log(`   Máquina: ${incidencia.maquina_nombre}`);
+            console.log(`   Motivo: ${incidencia.descripcion}\n`);
+        }
+
+        res.json({
+            ok: true,
+            mensaje: `Estado actualizado a "${estado}".`
+        });
+
+    } catch (error) {
+        console.error('[POST cambiar estado]', error.message);
+        res.status(500).json({ ok: false, mensaje: 'Error interno.' });
+    }
+});
+
 // ===================
 // GET /api/metricas
 // ===================
@@ -422,5 +473,5 @@ app.get('/api/metricas', (req, res) => {
 // ======================
 
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor en http://localhost:${PORT}`);
+    console.log(`🚀 Servidor en http://localhost:${PORT}/historial.html`);
 });

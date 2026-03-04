@@ -2,7 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Incidencias Abiertas</title>
+    <title>Gestión de Incidencias</title>
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -35,53 +36,116 @@
             background-color: #f1f1f1;
         }
 
-        .estado {
+        select {
+            padding: 5px;
+            border-radius: 4px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #2ecc71;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 6px;
             font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            animation: fadeIn 0.3s ease-in-out;
         }
 
-        .abierta {
-            color: red;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        .progreso {
-            color: orange;
+        .navbar {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding: 10px;
+        }
+
+        .navbar a {
+            text-decoration: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-weight: bold;
+            background-color: #2c3e50;
+            color: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+
+        .navbar a:hover {
+            background-color: #34495e;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+
+        .navbar a.activo {
+            background-color: #3498db;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transform: scale(1.05);
+        }
+
+        .navbar a.activo:hover {
+            background-color: #2980b9;
         }
     </style>
 </head>
+
 <body>
 
-    <h1>📋 Incidencias Abiertas</h1>
+<div class="navbar">
+    <a href="/historial.html">Historial</a>
+    <a href="/lista.html" class="activo">Lista</a>
+    <a href="/uso.html">Uso</a>
+    <a href="/registrar.html">Registro</a>
+    <a href="/graficos.html">Graficos</a>
+</div>
 
-    <table id="tablaIncidencias">
-        <thead>
-            <tr>
-                <th>Máquina</th>
-                <th>Tipo</th>
-                <th>Descripción</th>
-                <th>Estado</th>
-                <th>Fecha</th>
-                <th>Registrado por</th>
-            </tr>
-        </thead>
-        <tbody>
-        </tbody>
-    </table>
+<h1>📋 Gestión de Incidencias</h1>
+
+<table id="tablaIncidencias">
+    <thead>
+        <tr>
+            <th>Máquina</th>
+            <th>Tipo</th>
+            <th>Descripción</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+            <th>Registrado por</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
 
 <script>
+
+function cargarIncidencias() {
     fetch('/api/incidencias/abiertas')
         .then(response => response.json())
         .then(data => {
+
             const tabla = document.querySelector('#tablaIncidencias tbody');
+            tabla.innerHTML = '';
 
             data.data.forEach(inc => {
+
                 const fila = document.createElement('tr');
 
                 fila.innerHTML = `
                     <td>${inc.maquina_nombre}</td>
                     <td>${inc.maquina_tipo}</td>
                     <td>${inc.descripcion}</td>
-                    <td class="estado ${inc.estado === 'Abierta' ? 'abierta' : 'progreso'}">
-                        ${inc.estado}
+                    <td>
+                        <select onchange="cambiarEstado(${inc.incidencia_id}, this.value)">
+                            <option value="Abierta" ${inc.estado === 'Abierta' ? 'selected' : ''}>Abierta</option>
+                            <option value="En Progreso" ${inc.estado === 'En Progreso' ? 'selected' : ''}>En Progreso</option>
+                            <option value="Cerrada">Cerrada</option>
+                        </select>
                     </td>
                     <td>${inc.fecha}</td>
                     <td>${inc.registrado_por}</td>
@@ -93,6 +157,44 @@
         .catch(error => {
             console.error('Error cargando incidencias:', error);
         });
+}
+
+function cambiarEstado(id, nuevoEstado) {
+
+    fetch(`/api/incidencias/${id}/estado`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: nuevoEstado })
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        mostrarToast(data.mensaje);
+
+        // Recargar lista tras cambio
+        setTimeout(() => {
+            cargarIncidencias();
+        }, 500);
+    })
+    .catch(error => console.error(error));
+}
+
+function mostrarToast(mensaje) {
+
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerText = mensaje;
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+// Cargar al iniciar
+cargarIncidencias();
+
 </script>
 
 </body>

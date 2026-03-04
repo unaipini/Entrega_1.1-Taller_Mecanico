@@ -3,8 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <title>Historial de Máquina</title>
+    <style>
+        .navbar {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding: 10px;
+        }
+
+        .navbar a {
+            text-decoration: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-weight: bold;
+            background-color: #2c3e50;
+            color: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+
+        .navbar a:hover {
+            background-color: #34495e;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+
+        .navbar a.activo {
+            background-color: #3498db;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transform: scale(1.05);
+        }
+
+        .navbar a.activo:hover {
+            background-color: #2980b9;
+        }
+    </style>
 </head>
 <body>
+<div class="navbar">
+    <a href="/historial.html" class="activo">Historial</a>
+    <a href="/lista.html">Lista</a>
+    <a href="/uso.html">Uso</a>
+    <a href="/registrar.html">Registro</a>
+    <a href="/graficos.html">Graficos</a>
+
+</div>
 
 <h1>📊 Historial de Máquina</h1>
 
