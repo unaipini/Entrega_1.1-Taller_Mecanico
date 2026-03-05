@@ -4,40 +4,32 @@
     <meta charset="UTF-8">
     <title>Uso de Máquina</title>
     <style>
-      .navbar {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 25px;
-            padding: 10px;
-        }
+        body { font-family: Arial, sans-serif; background-color: #f4f6f8; margin: 20px; color: #333; }
+        h1, h2 { text-align: center; color: #2c3e50; }
+        
+        .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        
+        label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px;}
+        select, textarea { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
+        textarea { resize: vertical; min-height: 80px; }
+        
+        button { margin-top: 20px; width: 100%; padding: 12px; background-color: #2c3e50; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; transition: 0.3s; font-weight: bold;}
+        button:hover { background-color: #1a252f; }
+        
+        /* Botones lado a lado para iniciar/finalizar */
+        .botones-uso { display: flex; gap: 10px; }
+        .btn-iniciar { background-color: #27ae60; }
+        .btn-iniciar:hover { background-color: #219653; }
+        .btn-finalizar { background-color: #e74c3c; }
+        .btn-finalizar:hover { background-color: #c0392b; }
 
-        .navbar a {
-            text-decoration: none;
-            padding: 10px 18px;
-            border-radius: 6px;
-            font-weight: bold;
-            background-color: #2c3e50;
-            color: white;
-            transition: all 0.3s ease;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-        }
+        #mensaje { text-align: center; font-weight: bold; margin-top: 20px; color: #2980b9; }
 
-        .navbar a:hover {
-            background-color: #34495e;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
-        }
-
-        .navbar a.activo {
-            background-color: #3498db;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            transform: scale(1.05);
-        }
-
-        .navbar a.activo:hover {
-            background-color: #2980b9;
-        }
+        /* Navbar unificado */
+        .navbar { display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; padding: 10px; }
+        .navbar a { text-decoration: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; background-color: #2c3e50; color: white; transition: all 0.3s ease; box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
+        .navbar a:hover { background-color: #34495e; transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.2); }
+        .navbar a.activo { background-color: #3498db; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transform: scale(1.05); }
     </style>
 </head>
 <body>
@@ -47,97 +39,74 @@
     <a href="/lista.html">Lista</a>
     <a href="/uso.html" class="activo">Uso</a>
     <a href="/registrar.html">Registro</a>
-    <a href="/graficos.html">Graficos</a>
+    <a href="/graficos.html">Gráficos</a>
+    <a href="/plazos.html">Plazos</a>
 </div>
 
-<h1>▶ Iniciar / Finalizar Uso</h1>
+<h1>▶ Gestión de Uso</h1>
 
-<label>Usuario:</label>
-<select id="usuario"></select>
+<div class="container">
+    <label for="usuario">Usuario operario:</label>
+    <select id="usuario"></select>
 
-<label>Máquina:</label>
-<select id="maquina"></select>
+    <label for="maquina">Máquina seleccionada:</label>
+    <select id="maquina"></select>
 
-<button onclick="iniciar()">Iniciar Uso</button>
-<button onclick="finalizar()">Finalizar Uso</button>
+    <div class="botones-uso">
+        <button class="btn-iniciar" onclick="iniciar()">Iniciar Uso</button>
+        <button class="btn-finalizar" onclick="finalizar()">Finalizar Uso</button>
+    </div>
 
-<hr>
+    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
 
-<h2>📝 Registrar Evento</h2>
+    <h2>📝 Registrar Evento Rápido</h2>
+    <textarea id="descripcionEvento" placeholder="Describe una observación, parada técnica, etc..."></textarea>
+    <button onclick="registrarEvento()">Registrar Evento</button>
 
-<textarea id="descripcionEvento" placeholder="Describe el evento..."></textarea>
-<br><br>
-<button onclick="registrarEvento()">Registrar Evento</button>
-
-<p id="mensaje"></p>
+    <p id="mensaje"></p>
+</div>
 
 <script>
 const selectUsuario = document.getElementById('usuario');
 const selectMaquina = document.getElementById('maquina');
 const mensaje = document.getElementById('mensaje');
 
-fetch('/api/usuarios')
-  .then(res => res.json())
-  .then(data => {
+fetch('/api/usuarios').then(res => res.json()).then(data => {
     data.data.forEach(u => {
-      const option = document.createElement('option');
-      option.value = u.id;
-      option.textContent = u.nombre;
-      selectUsuario.appendChild(option);
+        const option = document.createElement('option');
+        option.value = u.id; option.textContent = u.nombre;
+        selectUsuario.appendChild(option);
     });
-  });
+});
 
-fetch('/api/maquinas')
-  .then(res => res.json())
-  .then(data => {
+fetch('/api/maquinas').then(res => res.json()).then(data => {
     data.data.forEach(m => {
-      const option = document.createElement('option');
-      option.value = m.id;
-      option.textContent = m.nombre;
-      selectMaquina.appendChild(option);
+        const option = document.createElement('option');
+        option.value = m.id; option.textContent = m.nombre;
+        selectMaquina.appendChild(option);
     });
-  });
+});
 
 function iniciar() {
   fetch('/api/uso/iniciar', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      id_maquina: selectMaquina.value,
-      id_usuario: selectUsuario.value
-    })
-  })
-  .then(res => res.json())
-  .then(data => mensaje.textContent = data.mensaje);
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id_maquina: selectMaquina.value, id_usuario: selectUsuario.value })
+  }).then(res => res.json()).then(data => mensaje.textContent = data.mensaje);
 }
 
 function finalizar() {
   fetch('/api/uso/finalizar', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      id_maquina: selectMaquina.value
-    })
-  })
-  .then(res => res.json())
-  .then(data => mensaje.textContent = data.mensaje);
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id_maquina: selectMaquina.value })
+  }).then(res => res.json()).then(data => mensaje.textContent = data.mensaje);
 }
 
 function registrarEvento() {
-
   const descripcion = document.getElementById('descripcionEvento').value;
-
   fetch('/api/eventos', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      id_maquina: selectMaquina.value,
-      id_usuario: selectUsuario.value,
-      descripcion: descripcion
-    })
-  })
-  .then(res => res.json())
-  .then(data => {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id_maquina: selectMaquina.value, id_usuario: selectUsuario.value, descripcion: descripcion })
+  }).then(res => res.json()).then(data => {
     mensaje.textContent = data.mensaje;
     document.getElementById('descripcionEvento').value = '';
   });

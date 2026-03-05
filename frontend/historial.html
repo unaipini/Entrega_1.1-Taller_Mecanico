@@ -4,40 +4,28 @@
     <meta charset="UTF-8">
     <title>Historial de Máquina</title>
     <style>
-        .navbar {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 25px;
-            padding: 10px;
-        }
+        body { font-family: Arial, sans-serif; background-color: #f4f6f8; margin: 20px; color: #333; }
+        h1, h2 { text-align: center; color: #2c3e50; }
+        
+        .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        
+        label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px;}
+        select { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
+        
+        button { margin-top: 20px; width: 100%; padding: 12px; background-color: #2c3e50; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; transition: 0.3s; }
+        button:hover { background-color: #1a252f; }
 
-        .navbar a {
-            text-decoration: none;
-            padding: 10px 18px;
-            border-radius: 6px;
-            font-weight: bold;
-            background-color: #2c3e50;
-            color: white;
-            transition: all 0.3s ease;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-        }
+        /* Estilos de tabla unificados con lista.html */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background-color: white; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+        th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: left; }
+        th { background-color: #2c3e50; color: white; }
+        tr:hover { background-color: #f1f1f1; }
 
-        .navbar a:hover {
-            background-color: #34495e;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
-        }
-
-        .navbar a.activo {
-            background-color: #3498db;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            transform: scale(1.05);
-        }
-
-        .navbar a.activo:hover {
-            background-color: #2980b9;
-        }
+        /* Navbar unificado */
+        .navbar { display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; padding: 10px; }
+        .navbar a { text-decoration: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; background-color: #2c3e50; color: white; transition: all 0.3s ease; box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
+        .navbar a:hover { background-color: #34495e; transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.2); }
+        .navbar a.activo { background-color: #3498db; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transform: scale(1.05); }
     </style>
 </head>
 <body>
@@ -46,46 +34,50 @@
     <a href="/lista.html">Lista</a>
     <a href="/uso.html">Uso</a>
     <a href="/registrar.html">Registro</a>
-    <a href="/graficos.html">Graficos</a>
-
+    <a href="/graficos.html">Gráficos</a>
+    <a href="/plazos.html">Plazos</a>
 </div>
 
 <h1>📊 Historial de Máquina</h1>
 
-<label>Seleccionar máquina:</label>
-<select id="maquina"></select>
+<div class="container">
+    <label for="maquina">Seleccionar máquina:</label>
+    <select id="maquina"></select>
 
-<button onclick="cargarHistorial()">Ver Historial</button>
+    <button onclick="cargarHistorial()">Ver Historial</button>
 
-<h2>👷 Historial de Uso</h2>
-<table border="1">
-    <thead>
-        <tr>
-            <th>Usuario</th>
-            <th>Inicio</th>
-            <th>Fin</th>
-        </tr>
-    </thead>
-    <tbody id="tablaUsos"></tbody>
-</table>
+    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
 
-<h2>🛠 Incidencias</h2>
-<table border="1">
-    <thead>
-        <tr>
-            <th>Descripción</th>
-            <th>Estado</th>
-            <th>Fecha</th>
-        </tr>
-    </thead>
-    <tbody id="tablaIncidencias"></tbody>
-</table>
+    <h2>👷 Historial de Uso</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Usuario</th>
+                <th>Inicio</th>
+                <th>Fin</th>
+            </tr>
+        </thead>
+        <tbody id="tablaUsos"></tbody>
+    </table>
+
+    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
+
+    <h2>🛠 Incidencias</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Descripción</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+            </tr>
+        </thead>
+        <tbody id="tablaIncidencias"></tbody>
+    </table>
+</div>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-
     const selectMaquina = document.getElementById('maquina');
-
     fetch('/api/maquinas')
         .then(res => res.json())
         .then(data => {
@@ -99,44 +91,28 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function cargarHistorial() {
-
     const id = document.getElementById('maquina').value;
-
     fetch(`/api/maquinas/${id}/historial`)
         .then(res => res.json())
         .then(response => {
-
             const tablaUsos = document.getElementById('tablaUsos');
             const tablaIncidencias = document.getElementById('tablaIncidencias');
-
             tablaUsos.innerHTML = '';
             tablaIncidencias.innerHTML = '';
-
-            // Pintar usos
+            
             response.data.usos.forEach(uso => {
                 const fila = document.createElement('tr');
-                fila.innerHTML = `
-                    <td>${uso.nombre}</td>
-                    <td>${uso.fecha_inicio}</td>
-                    <td>${uso.fecha_fin || 'En uso'}</td>
-                `;
+                fila.innerHTML = `<td>${uso.nombre}</td><td>${uso.fecha_inicio}</td><td>${uso.fecha_fin || 'En uso'}</td>`;
                 tablaUsos.appendChild(fila);
             });
-
-            // Pintar incidencias
+            
             response.data.incidencias.forEach(inc => {
                 const fila = document.createElement('tr');
-                fila.innerHTML = `
-                    <td>${inc.descripcion}</td>
-                    <td>${inc.estado}</td>
-                    <td>${inc.fecha}</td>
-                `;
+                fila.innerHTML = `<td>${inc.descripcion}</td><td>${inc.estado}</td><td>${inc.fecha}</td>`;
                 tablaIncidencias.appendChild(fila);
             });
-
         });
 }
 </script>
-
 </body>
 </html>
